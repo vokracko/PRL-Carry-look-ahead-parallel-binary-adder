@@ -1,0 +1,12 @@
+#!/bin/bash 
+
+proc_count=10
+#preklad cpp zdrojaku
+mpic++ --prefix /usr/local/share/OpenMPI -o clapba clapba.cpp -lm
+
+#spusteni
+mpirun --prefix /usr/local/share/OpenMPI -np $proc_count clapba
+
+#uklid
+rm -f clapba 
+
