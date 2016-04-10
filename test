@@ -1,12 +1,10 @@
-#!/bin/bash 
+#!/bin/bash
 
-proc_count=10
 #preklad cpp zdrojaku
-mpic++ --prefix /usr/local/share/OpenMPI -o clapba clapba.cpp -lm
+mpic++ --prefix /usr/local/share/OpenMPI -o clapba clapba.cpp -lm -DTIMEBENCH
 
 #spusteni
-mpirun --prefix /usr/local/share/OpenMPI -np $proc_count clapba
+mpirun --prefix /usr/local/share/OpenMPI -np $((2*$1-1)) clapba
 
-#uklid
-rm -f clapba 
+rm -f clapba
 
