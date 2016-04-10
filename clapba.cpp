@@ -47,7 +47,7 @@ int main(int argc, char * argv[])
 
 	if(cpu_id == 0)
 	{
-		int recv_id = p_count - 1;
+		int recv_id = n - 1;
 		std::string first, second;
 		std::fstream file("numbers");
 
@@ -68,7 +68,7 @@ int main(int argc, char * argv[])
 			y = second[i] == '1';
 			SEND(x, recv_id);
 			SEND(y, recv_id);
-			recv_id--;
+			recv_id++;
 		}
 	}
 
@@ -101,7 +101,7 @@ int main(int argc, char * argv[])
 		RECV(left, LEFT_CHILD);
 		RECV(right, RIGHT_CHILD);
 
-		val = op(left, right);
+		val = op(right, left);
 
 		if(cpu_id != 0)
 		{
@@ -111,8 +111,8 @@ int main(int argc, char * argv[])
 		else
 			val = PROPAGATE;
 
-		right = op(val, left);
-		left = val;
+		left = op(val, right);
+		right = val;
 		SEND(left, LEFT_CHILD);
 		SEND(right, RIGHT_CHILD);
 	}
