@@ -22,10 +22,10 @@ bool leaf(int i, int n)
 
 int op(int left, int right)
 {
-		if(right == STOP)
+		if(left == STOP)
 			return STOP;
-		else if(right == PROPAGATE)
-			return left;
+		else if(left == PROPAGATE)
+			return right;
 		else
 			return GENERATE;
 }
@@ -72,7 +72,7 @@ int main(int argc, char * argv[])
 		}
 	}
 
-	int msb_proc = cpu_id == p_count - 1;
+	int msb_proc = cpu_id == n - 1;
 	int val;
 
 	#ifdef TIMEBENCH
@@ -94,6 +94,8 @@ int main(int argc, char * argv[])
 
 		SEND(val, PARENT);
 		RECV(val, PARENT);
+		// SEND(val, cpu_id - 1);
+		// RECV(val, cpu_id + 1);
 	}
 	else
 	{
@@ -101,7 +103,7 @@ int main(int argc, char * argv[])
 		RECV(left, LEFT_CHILD);
 		RECV(right, RIGHT_CHILD);
 
-		val = op(right, left);
+		val = op(left, right);
 
 		if(cpu_id != 0)
 		{
@@ -111,7 +113,7 @@ int main(int argc, char * argv[])
 		else
 			val = PROPAGATE;
 
-		left = op(val, right);
+		left = op(right, val);
 		right = val;
 		SEND(left, LEFT_CHILD);
 		SEND(right, RIGHT_CHILD);
