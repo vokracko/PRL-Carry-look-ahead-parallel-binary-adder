@@ -78,14 +78,22 @@ bool msb_proc(int cpu_id, int n)
 	return cpu_id == n - 1;
 }
 
+bool lsb_proc(int cpu_id, int n)
+{
+	return cpu_id == 2 * n - 2;
+}
+
 int shift(int cpu_id, int n, int val)
 {
 	MPI_Status stat;
+	
+	if(!leaf(cpu_id, n))
+		return val;
 
-	if(cpu_id != 2 * n - 2)
+	if(!lsb_proc(cpu_id, n))
 		SEND(val, cpu_id + 1);
 
-	if(msb_proc(cpu_id, n))
+	if(!msb_proc(cpu_id, n))
 		RECV(val, cpu_id - 1);
 
 	return val;
@@ -166,7 +174,7 @@ int main(int argc, char * argv[])
 
 	val = prescan(cpu_id, n, x, y);
 
-	if(msb_proc && val == GENERATE)
+	if(msb_proc(cpu_id, n) && val == GENERATE)
 		printf("overflow\n");
 
 	#ifdef TIMEBENCH
