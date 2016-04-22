@@ -30,6 +30,67 @@ int op(int left, int right)
 			return GENERATE;
 }
 
+int prescan(int cpu_id, int n, int x, int y)
+{
+	int val;
+	MPI_Status stat;
+
+	if(leaf(cpu_id, n))
+	{
+
+		if(x == 1 && y == 1)
+			val = GENERATE;
+		else if(x == 0 && y == 0)
+			val = STOP;
+		else
+			val = PROPAGATE;
+
+		SEND(val, PARENT);
+		RECV(val, PARENT);
+	}
+	else
+	{
+		int left, right;
+		RECV(left, LEFT_CHILD);
+		RECV(right, RIGHT_CHILD);
+
+		val = op(left, right);
+
+		if(cpu_id != 0)
+		{
+			SEND(val, PARENT);
+			RECV(val, PARENT);
+		}
+		else
+			val = PROPAGATE;
+
+		left = op(right, val);
+		right = val;
+		SEND(left, LEFT_CHILD);
+		SEND(right, RIGHT_CHILD);
+	}
+
+	return val;
+}
+
+bool msb_proc(int cpu_id, int n)
+{
+	return cpu_id == n - 1;
+}
+
+int shift(int cpu_id, int n, int val)
+{
+	MPI_Status stat;
+
+	if(cpu_id != 2 * n - 2)
+		SEND(val, cpu_id + 1);
+
+	if(msb_proc(cpu_id, n))
+		RECV(val, cpu_id - 1);
+
+	return val;
+}
+
 int main(int argc, char * argv[])
 {
 	MPI_Status stat;
@@ -56,7 +117,6 @@ int main(int argc, char * argv[])
 
 		int length_diff = abs(first.length() - second.length());
 
-
 		if(first.length() < second.length())
 			first = std::string(length_diff, '0') + first;
 		else if(second.length() < first.length())
@@ -72,52 +132,20 @@ int main(int argc, char * argv[])
 		}
 	}
 
-	int msb_proc = cpu_id == n - 1;
 	int val;
+
+	if(leaf(cpu_id, n))
+	{
+		RECV(x, 0);
+		RECV(y, 0);
+	}
 
 	#ifdef TIMEBENCH
 		MPI_Barrier(MPI_COMM_WORLD); /* IMPORTANT */
 		start = MPI_Wtime();
 	#endif
 
-	if(leaf(cpu_id, n))
-	{
-		RECV(x, 0);
-		RECV(y, 0);
-
-		if(x == 1 && y == 1)
-			val = GENERATE;
-		else if(x == 0 && y == 0)
-			val = STOP;
-		else
-			val = PROPAGATE;
-
-		SEND(val, PARENT);
-		RECV(val, PARENT);
-		// SEND(val, cpu_id - 1);
-		// RECV(val, cpu_id + 1);
-	}
-	else
-	{
-		int left, right;
-		RECV(left, LEFT_CHILD);
-		RECV(right, RIGHT_CHILD);
-
-		val = op(left, right);
-
-		if(cpu_id != 0)
-		{
-			SEND(val, PARENT);
-			RECV(val, PARENT);
-		}
-		else
-			val = PROPAGATE;
-
-		left = op(right, val);
-		right = val;
-		SEND(left, LEFT_CHILD);
-		SEND(right, RIGHT_CHILD);
-	}
+	val = prescan(cpu_id, n, x, y);
 
 	if(leaf(cpu_id, n))
 	{
@@ -126,10 +154,20 @@ int main(int argc, char * argv[])
 
 		int bit = x + y + val;
 		printf("%d:%d\n", cpu_id, bit % 2);
-
-		if(msb_proc && bit > 1)
-			printf("overflow\n");
 	}
+
+	shift(cpu_id, n, val);
+
+	if(msb_proc(cpu_id, n))
+	{
+		x = 0;
+		y = 0;
+	}
+
+	val = prescan(cpu_id, n, x, y);
+
+	if(msb_proc && val == GENERATE)
+		printf("overflow\n");
 
 	#ifdef TIMEBENCH
 		MPI_Barrier(MPI_COMM_WORLD); /* IMPORTANT */
