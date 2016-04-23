@@ -33,6 +33,7 @@ int op(int left, int right)
 int prescan(int cpu_id, int n, int x, int y)
 {
 	int val;
+	int ret;
 	MPI_Status stat;
 
 	if(leaf(cpu_id, n))
@@ -46,7 +47,7 @@ int prescan(int cpu_id, int n, int x, int y)
 			val = PROPAGATE;
 
 		SEND(val, PARENT);
-		RECV(val, PARENT);
+		RECV(ret, PARENT);
 	}
 	else
 	{
@@ -55,6 +56,7 @@ int prescan(int cpu_id, int n, int x, int y)
 		RECV(right, RIGHT_CHILD);
 
 		val = op(left, right);
+		ret = val;
 
 		if(cpu_id != 0)
 		{
@@ -70,33 +72,7 @@ int prescan(int cpu_id, int n, int x, int y)
 		SEND(right, RIGHT_CHILD);
 	}
 
-	return val;
-}
-
-bool msb_proc(int cpu_id, int n)
-{
-	return cpu_id == n - 1;
-}
-
-bool lsb_proc(int cpu_id, int n)
-{
-	return cpu_id == 2 * n - 2;
-}
-
-int shift(int cpu_id, int n, int val)
-{
-	MPI_Status stat;
-	
-	if(!leaf(cpu_id, n))
-		return val;
-
-	if(!lsb_proc(cpu_id, n))
-		SEND(val, cpu_id + 1);
-
-	if(!msb_proc(cpu_id, n))
-		RECV(val, cpu_id - 1);
-
-	return val;
+	return ret;
 }
 
 int main(int argc, char * argv[])
@@ -164,17 +140,7 @@ int main(int argc, char * argv[])
 		printf("%d:%d\n", cpu_id, bit % 2);
 	}
 
-	shift(cpu_id, n, val);
-
-	if(msb_proc(cpu_id, n))
-	{
-		x = 0;
-		y = 0;
-	}
-
-	val = prescan(cpu_id, n, x, y);
-
-	if(msb_proc(cpu_id, n) && val == GENERATE)
+	if(cpu_id == 0 && val == GENERATE)
 		printf("overflow\n");
 
 	#ifdef TIMEBENCH
