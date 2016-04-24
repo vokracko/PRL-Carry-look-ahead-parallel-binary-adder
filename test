@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #preklad cpp zdrojaku
-mpic++ --prefix /usr/local/share/OpenMPI -o clapba clapba.cpp -lm -DTIMEBENCH
+mpic++ --prefix /usr/local/share/OpenMPI -o clapba clapba.cpp -lm 
 
 #spusteni
 mpirun --prefix /usr/local/share/OpenMPI -np $((2*$1-1)) clapba
